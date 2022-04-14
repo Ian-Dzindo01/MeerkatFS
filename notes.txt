@@ -1,0 +1,12 @@
+API:
+- Support range requests
+- 302 redirect to volume server
+- PUT DELETE key
+- Blocks. 200 = written, other= nothing
+
+Start master server (port 3000)
+
+./master/tmp/cachedb/
+
+Start volume server (port 3001)
+

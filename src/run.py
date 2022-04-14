@@ -10,7 +10,11 @@ if os.environ['TYPE'] == 'master':
 def master(env,start_response):
     print(os.getpid())
     print(db)
-    db.put(b'key-%d' % time.time(), b'tom')
+    db.put(b'key-%d' % time.time(), b'toms')
+
+    for x in db.iterator():
+        print(x)
+
     start_response('200 OK', [('Content-Type', 'text/html')])
     return [b'Hello World']
 
