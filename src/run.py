@@ -1,22 +1,44 @@
 import os
 import time
+import socket
+import json
+
 
 print("Hello", os.environ['TYPE'], os.getpid())
+
 
 if os.environ['TYPE'] == 'master':
     import plyvel
     db = plyvel.DB(os.environ['DB'], create_if_missing=True)
 
-def master(env,start_response):
-    print(os.getpid())
-    print(db)
-    db.put(b'key-%d' % time.time(), b'toms')
+# --Master Server --
 
+def master(env,start_response):
+    key = env['REQUEST_URI'].encode('utf-8')
+    metakey = db.get(b'key')
+
+    if metakey is None:
+        # key doesn't exist
+        start_response("404 Not Found", [('Content-type', 'text/plain')])
+        return [b"Key not found"]
+
+
+    # key found: volume
+    meta = json.loads[metakey]
+
+    db.put(b'key-%d' % time.time(), b'toms')
     for x in db.iterator():
         print(x)
 
     start_response('200 OK', [('Content-Type', 'text/html')])
     return [b'Hello World']
+
+
+# --Volume Server --
+
+if os.environ['TYPE'] == 'volume':
+    host = socket.gethostname()
+
 
 def volume(env,start_response):
     print(os.getpid())
@@ -26,4 +48,3 @@ def volume(env,start_response):
 
 # master - server to store keys
 # volume - server to store data
-# minute 35
