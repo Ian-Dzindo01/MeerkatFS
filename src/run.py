@@ -13,7 +13,6 @@ if os.environ['TYPE'] == 'master':    # create DB
     db = plyvel.DB(os.environ['DB'], create_if_missing=True)
 
 
-
 # --Master Server --
 def master(env,start_response):
     key = env['REQUEST_URI'].encode('utf-8')
@@ -43,9 +42,33 @@ def master(env,start_response):
 # --Volume Server --
 class FileCache(object):
     def __init__(self, basedir):
-        pass
+        os.makedirs(self, basedir):
+        self.basedir = basedir
+
+
+    def k2p(self.key):
+        path = self.basedir + '/' + key[0:1] + '/' + key[1:2]
+        if not os.path.isdir(path):
+            os.makedirs(path)
+        return os.path.join(path, key[2:])
+
 
     def exists(self, key):
+        return os.path.isfile(k2p(key))     # return true or false
+
+
+    def delete(self, key):
+        os.path.unlink(k2p(key))     # deletes the filepath
+
+
+    def get(self, key):
+        return open(self.k2p(key), 'rb').read()
+
+
+    def put(self, key, value):
+        with open(self.k2p(key), 'wb') as f:
+            f.write(value)
+
 
 
 if os.environ['TYPE'] == 'volume':
@@ -62,10 +85,11 @@ def volume(env,start_response):
     key = env['REQUEST_URI'].encode('utf-8')
     hashedkey = hashlib.md5(key).hexdigest()
 
-    if not fc.exists(key):
-        # key is not in File Cache
-        start_response("404 Not Found", [('Content-type', 'text/plain')])
-        return [b"Key not found"]
+    if env["REQUEST_METHOD"] in ["GET"]:
+        if not fc.exists(key):
+            # key is not in File Cache
+            start_response("404 Not Found", [('Content-type', 'text/plain')])
+            return [b"Key not found"]
 
     return [fc.get(key)]
 

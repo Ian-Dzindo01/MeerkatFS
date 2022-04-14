@@ -2,7 +2,7 @@ API:
 - Support range requests
 - 302 redirect to volume server
 - PUT DELETE key
-- Blocks. 200 = written, other= nothing
+- Blocks. 200 = written, other = nothing
 
 Start master server (port 3000)
 
