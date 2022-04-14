@@ -17,6 +17,7 @@ def master(env,start_response):
     key = env['REQUEST_URI'].encode('utf-8')
     metakey = db.get(b'key')
 
+
     if metakey is None:
         # key doesn't exist
         start_response("404 Not Found", [('Content-type', 'text/plain')])
@@ -26,13 +27,10 @@ def master(env,start_response):
     # key found: volume
     meta = json.loads[metakey]
 
-    db.put(b'key-%d' % time.time(), b'toms')
-    for x in db.iterator():
-        print(x)
-
-    start_response('200 OK', [('Content-Type', 'text/html')])
-    return [b'Hello World']
-
+    # send redirect
+    headers = [('location', "http://%s%s" % (meta['volume'], key)), ('expires', '0')]
+    start_response("302 Found", headers)
+        return [b""]
 
 # --Volume Server --
 
@@ -48,3 +46,12 @@ def volume(env,start_response):
 
 # master - server to store keys
 # volume - server to store data
+
+
+# db.put(b'key-%d' % time.time(), b'toms')
+# for x in db.iterator():
+#     print(x)
+
+# start_response('200 OK', [('Content-Type', 'text/html')])
+# return [b'Hello World']
+
