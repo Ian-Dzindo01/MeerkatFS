@@ -42,11 +42,11 @@ def master(env,start_response):
 # --Volume Server --
 class FileCache(object):
     def __init__(self, basedir):
-        os.makedirs(self, basedir):
+        os.makedirs(self, basedir)
         self.basedir = basedir
 
 
-    def k2p(self.key):
+    def k2p(self, key):
         path = self.basedir + '/' + key[0:1] + '/' + key[1:2]
         if not os.path.isdir(path):
             os.makedirs(path)
@@ -69,15 +69,13 @@ class FileCache(object):
         with open(self.k2p(key), 'wb') as f:
             f.write(value)
 
-
-
 if os.environ['TYPE'] == 'volume':
     host = socket.gethostname()
 
     # register master
     master = os.environ['MASTER']
 
-    # create filecache
+    # create filecach
     fc = FileCache(os.environ['VOLUME'])
 
 
@@ -92,6 +90,11 @@ def volume(env,start_response):
             return [b"Key not found"]
 
     return [fc.get(key)]
+
+    if env["REQUEST_METHOD"] in ["PUT"]:
+        fc.put(key, env['wsgi.input'].read(env['CONTENT_LENGTH']))
+
+
 
 
 
