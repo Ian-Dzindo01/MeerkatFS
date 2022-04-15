@@ -37,19 +37,22 @@ def master(env,start_response):
     return [b""]
 
 
-
-
 # --Volume Server --
 class FileCache(object):
     def __init__(self, basedir):
-        os.makedirs(self, basedir)
-        self.basedir = basedir
+        self.basedir = os.path.realpath(basedir)
+        os.makedirs(self.basedir, exist_ok=True)
+        print("File Cache in %s" % basedir)
 
 
-    def k2p(self, key):
+    def k2p(self, key, mkdir_ok=False):
+        # must be md5 hash
+        assert len(key) == 32
+
         path = self.basedir + '/' + key[0:1] + '/' + key[1:2]
-        if not os.path.isdir(path):
-            os.makedirs(path)
+        if not os.path.isdir(path) and mkdir_ok:
+            os.makedirs(path, exist_ok=True)
+
         return os.path.join(path, key[2:])
 
 
@@ -66,7 +69,7 @@ class FileCache(object):
 
 
     def put(self, key, value):
-        with open(self.k2p(key), 'wb') as f:
+        with open(self.k2p(key, True), 'wb') as f:
             f.write(value)
 
 if os.environ['TYPE'] == 'volume':
@@ -81,22 +84,23 @@ if os.environ['TYPE'] == 'volume':
 
 def volume(env,start_response):
     key = env['REQUEST_URI'].encode('utf-8')
-    hashedkey = hashlib.md5(key).hexdigest()
+    hkey = hashlib.md5(key).hexdigest()
 
-    if env["REQUEST_METHOD"] in ["GET"]:
-        if not fc.exists(key):
+    if env["REQUEST_METHOD"] == "GET":
+        if not fc.exists(hkey):
             # key is not in File Cache
             start_response("404 Not Found", [('Content-type', 'text/plain')])
             return [b"Key not found"]
 
-    return [fc.get(key)]
+    return [fc.get(hkey)]
 
-    if env["REQUEST_METHOD"] in ["PUT"]:
-        fc.put(key, env['wsgi.input'].read(env['CONTENT_LENGTH']))
+    if env["REQUEST_METHOD"] == "PUT":
+        flen = int(env.get('CONTENT_LENGTH', '0'))
+        fc.put(hkey, env['wsgi.input'].read(flen))
 
 
-
-
+    if env["REQUEST_METHOD"] == "DELETE":
+        fc.delete(hkey)
 
 
 
