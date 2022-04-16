@@ -12,6 +12,8 @@ Start volume server (port 3001)
 
 Usage:
 
-curl -X PUT -d respek localhost:3000/wehave
-curl -X DELETE localhost:3000/wehave
+curl -X PUT -d bigswag localhost:3000/wehave
+
 curl localhost:3000/wehave
+
+curl -X DELETE localhost:3000/wehave
