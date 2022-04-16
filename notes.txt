@@ -10,9 +10,10 @@ Start master server (port 3000)
 
 Start volume server (port 3001)
 
+
 Usage:
 
-curl -X PUT -d bigswag localhost:3000/wehave
+curl -X PUT -d bigswag localhost:3001/wehave
 
 curl localhost:3000/wehave
 
