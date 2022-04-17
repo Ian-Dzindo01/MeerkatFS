@@ -6,9 +6,10 @@ API:
 
 Start master server (port 3000)
 
-./master/tmp/cachedb/
+Cache location ---> ./master/tmp/cachedb/
 
 Start volume server (port 3001)
+
 
 
 
@@ -19,3 +20,8 @@ curl -X PUT -d bandsonbands localhost:3001/wehave
 curl localhost:3000/wehave
 
 curl -X DELETE localhost:3000/wehave
+
+
+To expect 50000 files by folder.
+How do master servers find volume servers?
+Going to have to support a STATUS request.

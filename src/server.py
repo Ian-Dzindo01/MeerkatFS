@@ -6,9 +6,15 @@ import hashlib
 
 print("hello", os.environ['TYPE'], os.getpid())    # enivronment variable and process id
 
-
 # --- Master Server ---
 if os.environ['TYPE'] == "master":     # create plyvel database
+
+  # check on volume servers
+  volumes = os.environ['VOLUMES'].split(",")
+
+  for v in volumes:
+    print(v)
+
   import plyvel
   db = plyvel.DB(os.environ['DB'], create_if_missing=True)
 
@@ -17,7 +23,7 @@ def master(env, start_response):
   metakey = db.get(key)
 
   if metakey is None:
-    if env['REQUEST_METHOD'] in ['PUT']:
+    if env['REQUEST_METHOD'] in ['POST']:
       # Handle put method
       pass
 
@@ -69,9 +75,6 @@ class FileCache(object):
 if os.environ['TYPE'] == "volume":
   host = socket.gethostname()
 
-  # register with master
-  master = os.environ['MASTER']
-
   # create the filecache
   fc = FileCache(os.environ['VOLUME'])
 
@@ -87,7 +90,7 @@ def volume(env, start_response):
       return [b'key not found']
     return [fc.get(hkey)]
 
-  if env['REQUEST_METHOD'] == 'PUT':
+  if env['REQUEST_METHOD'] == 'POST':
     flen = int(env.get('CONTENT_LENGTH', '0'))
     fc.put(hkey, env['wsgi.input'].read(flen))
 
