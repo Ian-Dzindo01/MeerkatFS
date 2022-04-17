@@ -1,6 +1,7 @@
 import os
 import time
 import json
+import random
 import socket
 import hashlib
 
@@ -22,20 +23,35 @@ def master(env, start_response):
   key = env['REQUEST_URI'].encode('utf-8')    # get path component
   metakey = db.get(key)
 
+  if metakey is not None and env['REQUEST_METHOD'] in
+
   if metakey is None:
-    if env['REQUEST_METHOD'] in ['POST']:
-      # Handle put method
-      pass
+    if env['REQUEST_METHOD'] == 'PUT':
+      # handle put method
+      # TODO: make volume selection better
+      volume = os.random.choice(volumes)
 
-    # this key doesn't exist and we aren't trying to create it
-    start_response('404 Not Found', [('Content-type', 'text/plain')])
-    return [b'key not found']
+      # save vol to database
+      metakey = json.dumps({"volume": volume})
+      db.put(key, metakey)
 
-  # key found
-  meta = json.loads(metakey)    # json string to python dict
+    else:
+      start_response('404 Not Found', [('Content-type', 'text/plain')])
+      return [b'key not found']
+
+  else:
+    # key found
+    if env['REQUEST_METHOD'] == 'PUT':
+      start_response('409 Conflict', [('Content-type', 'text/plain')])
+      return [b'Key already exists']
+
+    meta = json.loads(metakey)    # json string to python dict
+    volume = meta["volume"]
+
+
 
   # send the redirect for either GET or DELETE
-  headers = [('location', 'http://%s%s' % (meta['volume'], key)), ('expires', '0')]
+  headers = [('location', 'http://%s%s' % (volume, key)), ('expires', '0')]
   start_response('302 Found', headers)
   return [b""]
 
@@ -90,7 +106,7 @@ def volume(env, start_response):
       return [b'key not found']
     return [fc.get(hkey)]
 
-  if env['REQUEST_METHOD'] == 'POST':
+  if env['REQUEST_METHOD'] == 'PUT':
     flen = int(env.get('CONTENT_LENGTH', '0'))
     fc.put(hkey, env['wsgi.input'].read(flen))
 
