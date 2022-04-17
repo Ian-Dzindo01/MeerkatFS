@@ -20,20 +20,18 @@ if os.environ['TYPE'] == "master":     # create plyvel database
   db = plyvel.DB(os.environ['DB'], create_if_missing=True)
 
 def master(env, start_response):
-  key = env['REQUEST_URI'].encode('utf-8')    # get path component
-  metakey = db.get(key)
-
-  if metakey is not None and env['REQUEST_METHOD'] in
+  key = env['REQUEST_URI']        # get path component
+  metakey = db.get(key.encode('utf-8')).decode('utf-8')
 
   if metakey is None:
     if env['REQUEST_METHOD'] == 'PUT':
       # handle put method
       # TODO: make volume selection better
-      volume = os.random.choice(volumes)
+      volume = random.choice(volumes)
 
       # save vol to database
-      metakey = json.dumps({"volume": volume})
-      db.put(key, metakey)
+      metakey = json.dumps({"volume": volume})   # object to json string
+      db.put(key.encode('utf-8'), metakey.encode('utf-8'))
 
     else:
       start_response('404 Not Found', [('Content-type', 'text/plain')])
@@ -45,13 +43,12 @@ def master(env, start_response):
       start_response('409 Conflict', [('Content-type', 'text/plain')])
       return [b'Key already exists']
 
-    meta = json.loads(metakey)    # json string to python dict
+    meta = json.loads(metakey.decode('utf-8'))    # json string to python dict
     volume = meta["volume"]
 
 
-
-  # send the redirect for either GET or DELETE
-  headers = [('location', 'http://%s%s' % (volume, key)), ('expires', '0')]
+  # send redirect
+  headers = [('location', b'http://%s%s' % (volume, key)), ('expires', '0')]
   start_response('302 Found', headers)
   return [b""]
 
