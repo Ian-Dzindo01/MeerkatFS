@@ -12,9 +12,10 @@ Start volume server (port 3001)
 
 
 
+
 Usage:
 
-curl -X PUT -d bandsonbands localhost:3001/wehave
+curl -X PUT -d bandsonbands localhost:3000/wehave
 
 curl localhost:3000/wehave
 

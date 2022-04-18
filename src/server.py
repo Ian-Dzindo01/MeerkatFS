@@ -5,11 +5,11 @@ import random
 import socket
 import hashlib
 
-print("hello", os.environ['TYPE'], os.getpid())    # enivronment variable and process id
+print("hello", os.environ['TYPE'], os.getpid())
 
 # --- Master Server ---
-if os.environ['TYPE'] == "master":     # create plyvel database
 
+if os.environ['TYPE'] == "master":
   # check on volume servers
   volumes = os.environ['VOLUMES'].split(",")
 
@@ -20,40 +20,40 @@ if os.environ['TYPE'] == "master":     # create plyvel database
   db = plyvel.DB(os.environ['DB'], create_if_missing=True)
 
 def master(env, start_response):
-  key = env['REQUEST_URI']        # get path component
-  metakey = db.get(key.encode('utf-8')).decode('utf-8')
+  key = env['REQUEST_URI']
+  metakey = db.get(key.encode('utf-8'))
 
   if metakey is None:
     if env['REQUEST_METHOD'] == 'PUT':
-      # handle put method
-      # TODO: make volume selection better
+      # handle putting key
+      # TODO: make volume selection intelligent
       volume = random.choice(volumes)
 
-      # save vol to database
+      # save volume to database
       meta = {"volume": volume}
-      metakey = json.dumps(meta)   # object to json string
       db.put(key.encode('utf-8'), json.dumps(meta).encode('utf-8'))
     else:
+      # this key doesn't exist and we aren't trying to create it
       start_response('404 Not Found', [('Content-type', 'text/plain')])
       return [b'key not found']
-
   else:
-    # key found
-    # if env['REQUEST_METHOD'] == 'PUT':
-    #   start_response('409 Conflict', [('Content-type', 'text/plain')])
-    #   return [b'Key already exists']
+    # key found and we are trying to put it
+    """
+    if env['REQUEST_METHOD'] == 'PUT':
+      start_response('409 Conflict', [('Content-type', 'text/plain')])
+      return [b'key already exists']
+    """
+    meta = json.loads(metakey.decode('utf-8'))
 
-    meta = json.loads(metakey.decode('utf-8'))    # json string to python dict
-
-  # send redirect
+  # send the redirect
   print(meta)
-  volume = meta["volume"]
-  headers = [('location', b'http://%s%s' % (volume, key)), ('expires', '0')]
-  start_response('302 Found', headers)
+  volume = meta['volume']
+  headers = [('Location', 'http://%s%s' % (volume, key))]
+  start_response('307 Temporary Redirect', headers)
   return [b""]
 
-
 # --- Volume Server ---
+
 class FileCache(object):
   def __init__(self, basedir):
     self.basedir = os.path.realpath(basedir)
@@ -64,8 +64,8 @@ class FileCache(object):
     # must be MD5 hash
     assert len(key) == 32
 
-    path = self.basedir + "/" + key[0:2] + "/" + key[0:4]
-
+    # 2 layers deep in nginx world
+    path = self.basedir+"/"+key[0:2]+"/"+key[0:4]
     if not os.path.isdir(path) and mkdir_ok:
       # exist ok is fine, could be a race
       os.makedirs(path, exist_ok=True)
@@ -82,10 +82,9 @@ class FileCache(object):
     return open(self.k2p(key), "rb").read()
 
   def put(self, key, value):
-    # TODO:refactpr tp use a tempfile and symlink
+    # TODO: refactor to use a tempfile and symlink
     with open(self.k2p(key, True), "wb") as f:
       f.write(value)
-    return True
 
 if os.environ['TYPE'] == "volume":
   host = socket.gethostname()
@@ -103,7 +102,6 @@ def volume(env, start_response):
       # key not in the FileCache
       start_response('404 Not Found', [('Content-type', 'text/plain')])
       return [b'key not found']
-
     start_response('200 OK', [('Content-type', 'text/plain')])
     return [fc.get(hkey)]
 
@@ -112,14 +110,10 @@ def volume(env, start_response):
     if flen > 0:
       fc.put(hkey, env['wsgi.input'].read(flen))
       start_response('200 OK', [('Content-type', 'text/plain')])
-      return ['']
+      return [b'']
     else:
-      start_response('200 OK', [('Content-type', 'text/plain')])
-      return ['']
-
+      start_response('411 Length Required', [('Content-type', 'text/plain')])
+      return [b'']
 
   if env['REQUEST_METHOD'] == 'DELETE':
     fc.delete(hkey)
-
-
-# minute 1:50
