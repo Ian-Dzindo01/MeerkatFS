@@ -8,7 +8,7 @@ import hashlib
 print("hello", os.environ['TYPE'], os.getpid())    # hello environment variable and process id
 
 
-def response(sr, code, resp, headers=[('Content-type', 'text/plain')], body=b''):
+def resp(sr, code, resp, headers=[('Content-type', 'text/plain')], body=b''):
   sr(code, headers)
   return [b'']
 
@@ -37,13 +37,13 @@ def master(env, sr):
       db.put(key.encode('utf-8'), json.dumps(meta).encode('utf-8'))
     else:
       # this key doesn't exist and we aren't trying to create it
-      return response(sr, '404 Not Found')
+      return resp(sr, '404 Not Found')
 
   else:
     # key found and we are trying to put it
     """
     if env['REQUEST_METHOD'] == 'PUT':
-      return response(sr, '409 Conflict')
+      return resp(sr, '409 Conflict')
     """
 
     meta = json.loads(metakey.decode('utf-8'))
@@ -52,7 +52,7 @@ def master(env, sr):
   print(meta)
   volume = meta['volume']
   headers = [('Location', 'http://%s%s' % (volume, key))]
-  return response(sr, '307 Temporary Redirect', headers)
+  return resp(sr, '307 Temporary Redirect', headers)
   return [b""]
 
 
@@ -98,25 +98,27 @@ if os.environ['TYPE'] == "volume":
 
   fc = FileCache(os.environ['VOLUME'])
 
-
 def volume(env, sr):
   key = env['REQUEST_URI'].encode('utf-8')
   hkey = hashlib.md5(key).hexdigest()
   print(hkey)
 
-  if env['REQUEST_METHOD'] == 'GET':
-    if not fc.exists(hkey):
-      # key not in fc
-      return response(sr, '404 Not Found')            # key does not exist
-    return response(sr, '200 OK', body=fc.get(hkey).read())
-
   if env['REQUEST_METHOD'] == 'PUT':
     flen = int(env.get('CONTENT_LENGTH', '0'))
     if flen > 0:
       fc.put(hkey, env['wsgi.input'].read(flen))
-      return response(sr, '411 Length Required')
+      return resp(sr, '201 Created')
     else:
-      return response(sr, '411 Length Required')
+      return resp(sr, '411 Length Required')
+
+  if not fc.exists(hkey):
+    # key not in fc
+    return resp(sr, '404 Not Found')            # key does not exist
+
+  if env['REQUEST_METHOD'] == 'GET':
+    return resp(sr, '200 OK', body=fc.get(hkey).read())
 
   if env['REQUEST_METHOD'] == 'DELETE':
     fc.delete(hkey)
+    return resp(sr, '200 OK')
+
