@@ -30,24 +30,24 @@ def master(env, start_response):
       volume = random.choice(volumes)
 
       # save vol to database
-      metakey = json.dumps({"volume": volume})   # object to json string
-      db.put(key.encode('utf-8'), metakey.encode('utf-8'))
-
+      meta = {"volume": volume}
+      metakey = json.dumps(meta)   # object to json string
+      db.put(key.encode('utf-8'), json.dumps(meta).encode('utf-8'))
     else:
       start_response('404 Not Found', [('Content-type', 'text/plain')])
       return [b'key not found']
 
   else:
     # key found
-    if env['REQUEST_METHOD'] == 'PUT':
-      start_response('409 Conflict', [('Content-type', 'text/plain')])
-      return [b'Key already exists']
+    # if env['REQUEST_METHOD'] == 'PUT':
+    #   start_response('409 Conflict', [('Content-type', 'text/plain')])
+    #   return [b'Key already exists']
 
     meta = json.loads(metakey.decode('utf-8'))    # json string to python dict
-    volume = meta["volume"]
-
 
   # send redirect
+  print(meta)
+  volume = meta["volume"]
   headers = [('location', b'http://%s%s' % (volume, key)), ('expires', '0')]
   start_response('302 Found', headers)
   return [b""]
@@ -82,8 +82,10 @@ class FileCache(object):
     return open(self.k2p(key), "rb").read()
 
   def put(self, key, value):
+    # TODO:refactpr tp use a tempfile and symlink
     with open(self.k2p(key, True), "wb") as f:
       f.write(value)
+    return True
 
 if os.environ['TYPE'] == "volume":
   host = socket.gethostname()
@@ -101,11 +103,23 @@ def volume(env, start_response):
       # key not in the FileCache
       start_response('404 Not Found', [('Content-type', 'text/plain')])
       return [b'key not found']
+
+    start_response('200 OK', [('Content-type', 'text/plain')])
     return [fc.get(hkey)]
 
   if env['REQUEST_METHOD'] == 'PUT':
     flen = int(env.get('CONTENT_LENGTH', '0'))
-    fc.put(hkey, env['wsgi.input'].read(flen))
+    if flen > 0:
+      fc.put(hkey, env['wsgi.input'].read(flen))
+      start_response('200 OK', [('Content-type', 'text/plain')])
+      return ['']
+    else:
+      start_response('200 OK', [('Content-type', 'text/plain')])
+      return ['']
+
 
   if env['REQUEST_METHOD'] == 'DELETE':
     fc.delete(hkey)
+
+
+# minute 1:50
