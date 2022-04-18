@@ -8,10 +8,9 @@ import hashlib
 print("hello", os.environ['TYPE'], os.getpid())    # hello environment variable and process id
 
 
-def err(start_response, resp):
-  start_response(resp, [('Content-type', 'text/plain')])
-  return [b'key already exists']
-
+def response(sr, code, resp, headers=[('Content-type', 'text/plain')], body=b''):
+  sr(code, headers)
+  return [b'']
 
 # --- Master Server ---
 if os.environ['TYPE'] == "master":
@@ -24,7 +23,7 @@ if os.environ['TYPE'] == "master":
   db = plyvel.DB(os.environ['DB'], create_if_missing=True)    # create database
 
 
-def master(env, start_response):
+def master(env, sr):
   key = env['REQUEST_URI']       # URI env var
   metakey = db.get(key.encode('utf-8'))
 
@@ -38,13 +37,13 @@ def master(env, start_response):
       db.put(key.encode('utf-8'), json.dumps(meta).encode('utf-8'))
     else:
       # this key doesn't exist and we aren't trying to create it
-      return err(start_response, '404 Not Found')
+      return response(sr, '404 Not Found')
 
   else:
     # key found and we are trying to put it
     """
     if env['REQUEST_METHOD'] == 'PUT':
-      return err(start_response, '409 Conflict')
+      return response(sr, '409 Conflict')
     """
 
     meta = json.loads(metakey.decode('utf-8'))
@@ -53,7 +52,7 @@ def master(env, start_response):
   print(meta)
   volume = meta['volume']
   headers = [('Location', 'http://%s%s' % (volume, key))]
-  start_response('307 Temporary Redirect', headers)
+  return response(sr, '307 Temporary Redirect', headers)
   return [b""]
 
 
@@ -100,30 +99,24 @@ if os.environ['TYPE'] == "volume":
   fc = FileCache(os.environ['VOLUME'])
 
 
-def volume(env, start_response):
+def volume(env, sr):
   key = env['REQUEST_URI'].encode('utf-8')
   hkey = hashlib.md5(key).hexdigest()
   print(hkey)
 
   if env['REQUEST_METHOD'] == 'GET':
-    if not fc.exists(hkey):               # key does not exist
-      start_response('404 Not Found', [('Content-type', 'text/plain')])
-      return [b'key not found']
-
-    start_response('200 OK', [('Content-type', 'text/plain')])
-    return [fc.get(hkey).read()]
+    if not fc.exists(hkey):
+      # key not in fc
+      return response(sr, '404 Not Found')            # key does not exist
+    return response(sr, '200 OK', body=fc.get(hkey).read())
 
   if env['REQUEST_METHOD'] == 'PUT':
     flen = int(env.get('CONTENT_LENGTH', '0'))
-
     if flen > 0:
       fc.put(hkey, env['wsgi.input'].read(flen))
-      start_response('200 OK', [('Content-type', 'text/plain')])
-      return [b'']
-
+      return response(sr, '411 Length Required')
     else:
-      start_response('411 Length Required', [('Content-type', 'text/plain')])
-      return [b'']
+      return response(sr, '411 Length Required')
 
   if env['REQUEST_METHOD'] == 'DELETE':
     fc.delete(hkey)
