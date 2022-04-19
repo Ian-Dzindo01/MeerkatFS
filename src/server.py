@@ -8,7 +8,7 @@ import hashlib
 print("hello", os.environ['TYPE'], os.getpid())    # hello environment variable and process id
 
 
-def resp(sr, code, resp, headers=[('Content-type', 'text/plain')], body=b''):
+def resp(sr, code, headers=[('Content-type', 'text/plain')], body=b''):
   sr(code, headers)
   return [b'']
 
@@ -40,6 +40,7 @@ def master(env, sr):
       return resp(sr, '404 Not Found')
 
   else:
+
     # key found and we are trying to put it
     """
     if env['REQUEST_METHOD'] == 'PUT':
