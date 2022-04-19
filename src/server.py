@@ -27,36 +27,38 @@ if os.environ['TYPE'] == "master":
 
 def master(env, sr):
   key = env['REQUEST_URI']       # URI env var
+
+  if env['REQUEST_METHOD'] == 'POST':
+    flen = int(env.get('CONTENT_LENGTH', '0'))
+    if flen > 0:
+    # POST is called by the volume servers to write to the database
+      db.put(key.encode('utf-8'), env['wsgi.input'].read(), sync=True)
+    else:
+      db.delete(key.encode('utf-8'))
+    return resp(sr, '200 OK')
+
+
   metakey = db.get(key.encode('utf-8'))
 
   if metakey is None:
     if env['REQUEST_METHOD'] == 'PUT':
       # TODO: make volume selection intelligent
       volume = random.choice(volumes)
-
-      meta = {"volume": volume}    # save vol to db
-
-      db.put(key.encode('utf-8'), json.dumps(meta).encode('utf-8'))
     else:
       # this key doesn't exist and we aren't trying to create it
       return resp(sr, '404 Not Found')
-
   else:
-
-    # key found and we are trying to put it
-    """
+    # key found
     if env['REQUEST_METHOD'] == 'PUT':
       return resp(sr, '409 Conflict')
-    """
-
     meta = json.loads(metakey.decode('utf-8'))
+    volume = meta['volume']
+
 
   # send redirect
-  print(meta)
-  volume = meta['volume']
   headers = [('Location', 'http://%s%s' % (volume, key))]
+
   return resp(sr, '307 Temporary Redirect', headers)
-  return [b""]
 
 
 # --- Volume Server ---
@@ -112,9 +114,15 @@ def volume(env, sr):
   print(key)
 
   if env['REQUEST_METHOD'] == 'PUT':
+    if fc.exists(key):
+      # can't write already exists
+      return resp(sr, '409 Conflict')
+
     flen = int(env.get('CONTENT_LENGTH', '0'))
     if flen > 0:
       fc.put(key, env['wsgi.input'])
+      # notify database with hostname and operating port
+
       return resp(sr, '201 Created')
     else:
       return resp(sr, '411 Length Required')
