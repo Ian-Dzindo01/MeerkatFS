@@ -5,6 +5,7 @@ import random
 import socket
 import hashlib
 import tempfile
+import xattr
 
 print("hello", os.environ['TYPE'], os.getpid())    # hello environment variable and process id
 
@@ -60,6 +61,7 @@ def master(env, sr):
 
 # --- Volume Server ---
 class FileCache(object):
+  # single computer on disk key value store
   def __init__(self, basedir):
     self.basedir = os.path.realpath(basedir)
     self.tmpdir = os.path.join(self.basedir, "tmp")      # create temp file
@@ -68,8 +70,7 @@ class FileCache(object):
 
 
   def k2p(self, key, mkdir_ok=False):
-    # MD5 hash
-    assert len(key) == 32
+    key = hashlib.md5(key).hexdigest()
 
     path = self.basedir + "/" +key[0:2] + "/" + key[0:4]   # how do you get this combo?
     if not os.path.isdir(path) and mkdir_ok:
@@ -90,10 +91,15 @@ class FileCache(object):
     return open(self.k2p(key), "rb")
 
 
-  def put(self, key, stream):
+  def put(self, key, stream, fullname=None):
     with tempfile.NamedTemporaryFile(dir=self.tmpdir, delete=False) as f:       # might not be cleaned up due to delete
       # chunks, don't waste RAM
       f.write(stream.read())
+
+      # save real name in xattr in case we rebuild it
+      xattr.setxattr(f.name, 'user.key', key)
+
+      # check hash here
       os.rename(f.name, self.k2p(key, True))
 
 if os.environ['TYPE'] == "volume":
@@ -103,26 +109,25 @@ if os.environ['TYPE'] == "volume":
 
 def volume(env, sr):
   key = env['REQUEST_URI'].encode('utf-8')
-  hkey = hashlib.md5(key).hexdigest()
-  print(hkey)
+  print(key)
 
   if env['REQUEST_METHOD'] == 'PUT':
     flen = int(env.get('CONTENT_LENGTH', '0'))
     if flen > 0:
-      fc.put(hkey, env['wsgi.input'])
+      fc.put(key, env['wsgi.input'])
       return resp(sr, '201 Created')
     else:
       return resp(sr, '411 Length Required')
 
-  if not fc.exists(hkey):
+  if not fc.exists(key):
     # key not in fc
     return resp(sr, '404 Not Found')            # key does not exist
 
   if env['REQUEST_METHOD'] == 'GET':
     # chunks, don't waste RAM
-    return resp(sr, '200 OK', body=fc.get(hkey).read())
+    return resp(sr, '200 OK', body=fc.get(key).read())
 
   if env['REQUEST_METHOD'] == 'DELETE':
-    fc.delete(hkey)
+    fc.delete(key)
     return resp(sr, '200 OK')
 
