@@ -4,6 +4,7 @@ import json
 import random
 import socket
 import hashlib
+import tempfile
 
 print("hello", os.environ['TYPE'], os.getpid())    # hello environment variable and process id
 
@@ -61,7 +62,8 @@ def master(env, sr):
 class FileCache(object):
   def __init__(self, basedir):
     self.basedir = os.path.realpath(basedir)
-    os.makedirs(self.basedir, exist_ok=True)
+    self.tmpdir = os.path.join(self.basedir, "tmp")      # create temp file
+    os.makedirs(self.tmpdir, exist_ok=True)
     print("FileCache in %s" % basedir)
 
 
@@ -88,11 +90,11 @@ class FileCache(object):
     return open(self.k2p(key), "rb")
 
 
-  def put(self, key, value):
-    # TODO: refactor to use a tempfile and symlink
-    with open(self.k2p(key, True), "wb") as f:
-      f.write(value)
-
+  def put(self, key, stream):
+    with tempfile.NamedTemporaryFile(dir=self.tmpdir, delete=False) as f:       # might not be cleaned up due to delete
+      # chunks, don't waste RAM
+      f.write(stream.read())
+      os.rename(f.name, self.k2p(key, True))
 
 if os.environ['TYPE'] == "volume":
   host = socket.gethostname()
@@ -107,7 +109,7 @@ def volume(env, sr):
   if env['REQUEST_METHOD'] == 'PUT':
     flen = int(env.get('CONTENT_LENGTH', '0'))
     if flen > 0:
-      fc.put(hkey, env['wsgi.input'].read(flen))
+      fc.put(hkey, env['wsgi.input'])
       return resp(sr, '201 Created')
     else:
       return resp(sr, '411 Length Required')
@@ -117,6 +119,7 @@ def volume(env, sr):
     return resp(sr, '404 Not Found')            # key does not exist
 
   if env['REQUEST_METHOD'] == 'GET':
+    # chunks, don't waste RAM
     return resp(sr, '200 OK', body=fc.get(hkey).read())
 
   if env['REQUEST_METHOD'] == 'DELETE':
