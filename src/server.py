@@ -9,7 +9,6 @@ import xattr
 
 print("hello", os.environ['TYPE'], os.getpid())    # hello environment variable and process id
 
-
 def resp(sr, code, headers=[('Content-type', 'text/plain')], body=b''):
   sr(code, headers)
   return [b'']
@@ -17,9 +16,6 @@ def resp(sr, code, headers=[('Content-type', 'text/plain')], body=b''):
 # --- Master Server ---
 if os.environ['TYPE'] == "master":
   volumes = os.environ['VOLUMES'].split(",")    # volume servers
-
-  for v in volumes:
-    print(v)
 
   import plyvel
   db = plyvel.DB(os.environ['DB'], create_if_missing=True)    # create database
@@ -32,17 +28,18 @@ def master(env, sr):
     flen = int(env.get('CONTENT_LENGTH', '0'))
     if flen > 0:
     # POST is called by the volume servers to write to the database
-      db.put(key.encode('utf-8'), env['wsgi.input'].read(), sync=True)
+      db.put(key.encode('utf-8'), env['wsgi.input'].read(), sync=True)    # put kv pair in db
     else:
       db.delete(key.encode('utf-8'))
-    return resp(sr, '200 OK')
 
+    return resp(sr, '200 OK')
 
   metakey = db.get(key.encode('utf-8'))
 
   if metakey is None:
     if env['REQUEST_METHOD'] == 'PUT':
       # TODO: make volume selection intelligent
+      # OP
       volume = random.choice(volumes)
     else:
       # this key doesn't exist and we aren't trying to create it
@@ -51,6 +48,7 @@ def master(env, sr):
     # key found
     if env['REQUEST_METHOD'] == 'PUT':
       return resp(sr, '409 Conflict')
+
     meta = json.loads(metakey.decode('utf-8'))
     volume = meta['volume']
 
@@ -72,7 +70,7 @@ class FileCache(object):
 
 
   def k2p(self, key, mkdir_ok=False):
-    key = hashlib.md5(key).hexdigest()
+    key = hashlib.md5(key).hexdigest()     # must be md5 hashed
 
     path = self.basedir + "/" +key[0:2] + "/" + key[0:4]   # how do you get this combo?
     if not os.path.isdir(path) and mkdir_ok:
@@ -105,13 +103,13 @@ class FileCache(object):
       os.rename(f.name, self.k2p(key, True))
 
 if os.environ['TYPE'] == "volume":
-  host = socket.gethostname()
+  host = os.environ['HOST'] + ':' + os.environ['PORT']                        # PORT is an environment variable
 
+  # create FileCache
   fc = FileCache(os.environ['VOLUME'])
 
 def volume(env, sr):
   key = env['REQUEST_URI'].encode('utf-8')
-  print(key)
 
   if env['REQUEST_METHOD'] == 'PUT':
     if fc.exists(key):
