@@ -11,7 +11,8 @@ Cache location ---> ./master/tmp/cachedb/
 Start volume server (port 3001)
 
 
-
+The on disk cache is super simple. Nginx like with md5 for filenames
+and the real name in the xattr.
 
 Usage:
 
