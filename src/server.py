@@ -6,13 +6,10 @@ import random
 import socket
 import hashlib
 import tempfile
-
+import requests
 
 # --- Global ---
-
-host = os.environ['HOST'] + ":" + os.environ['PORT']   # host stuff is universal
-
-print("hello", os.environ['TYPE'], os.getpid(), "host", host)
+print("hello", os.environ['TYPE'], os.getpid())
 
 def resp(start_response, code, headers=[('Content-type', 'text/plain')], body=b''):            # generate response
   start_response(code, headers)
@@ -30,7 +27,8 @@ if os.environ['TYPE'] == "master":
   db = plyvel.DB(os.environ['DB'], create_if_missing=True)      # create plyvel DB
 
 def master(env, sr):
-  key = env['REQUEST_URI']
+  host = env['SERVER_NAME'] + ':' + env['SERVER_PORT']
+  key = env['PATH_INFO']
 
   if env['REQUEST_METHOD'] == 'POST':
     # POST is called by the volume servers to write to the database
@@ -61,7 +59,7 @@ def master(env, sr):
     volume = meta['volume']
 
   # send the redirect
-  headers = [('Location', 'http://%s%s' % (volume, key))]
+  headers = [('Location', 'http://%s%s%s' % (volume, key, host))]
 
   return resp(sr, '307 Temporary Redirect', headers)
 
@@ -111,7 +109,8 @@ if os.environ['TYPE'] == "volume":
   fc = FileCache(os.environ['VOLUME'])
 
 def volume(env, sr):
-  key = env['REQUEST_URI'].encode('utf-8')
+  host = env['SERVER_NAME'] + ':' + env['SERVER_PORT']
+  key = env['PATH_INFO'].encode('utf-8')
 
   if env['REQUEST_METHOD'] == 'PUT':
     if fc.exists(key):
@@ -127,6 +126,13 @@ def volume(env, sr):
     else:
       return resp(sr, '411 Length Required')
 
+  if env['REQUEST_METHOD'] == 'DELETE':
+    print("delete")
+    req = requests.post("http://" + env['QUERY_STRING'])
+    print(req)
+    # fc.delete(key)
+    return resp(sr, '200 OK')
+
   if not fc.exists(key):
     # key not in fc
     return resp(sr, '404 Not Found')
@@ -135,7 +141,3 @@ def volume(env, sr):
     # chunks, don't waste RAM
     return resp(sr, '200 OK', body=fc.get(key).read())
 
-  if env['REQUEST_METHOD'] == 'DELETE':
-    fc.delete(key)
-    #requests.post
-    return resp(sr, '200 OK')
