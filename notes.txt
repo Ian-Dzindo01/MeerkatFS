@@ -4,17 +4,22 @@ API:
 - PUT DELETE key
 - Blocks. 200 = written, other = nothing
 
-Start master server (port 3000)
+# Start master server (default port 3000):
+./master localhost:3001,localhost:3002, /tmp/cachedb/
 
 Cache location ---> ./master/tmp/cachedb/
 
-Start volume server (port 3001)
+# Start volume server (default port 3001):
+'''
+./volume tmp/volume1/
+PORT=3002 ./volume /tmp/volume2/
+'''
 
 
 The on disk cache is super simple. Nginx like with md5 for filenames
 and the real name in the xattr.
 
-Usage:
+# Usage:
 
 curl -L -vvv -X PUT -d bandsonbands localhost:3000/wehave
 
