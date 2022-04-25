@@ -4,4 +4,5 @@ FROM ubuntu:20.04
 RUN apt-get update
 RUN apt-get -y install build-essential curl python3 python3-pip
 
-RUN pip install -r requirements.txt
+COPY requirements.txt minikeyval/requirements.txt
+RUN pip3 install --no-cache-dir -r minikeyval/requirements.txt
