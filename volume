@@ -1,4 +1,4 @@
 #!/bin/bash
-export VOLUME=${1:-/tmp/volume1/}
-export TYPE=volume
+export VOLUME=${1:-/tmp/volume1/}    # volume server var
+export TYPE=volume                   # type var
 uwsgi --http :${PORT:-3001} --wsgi-file src/server.py --callable volume --master --processes 4
