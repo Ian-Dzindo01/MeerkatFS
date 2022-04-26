@@ -21,11 +21,15 @@ and the real name in the xattr.
 
 # Usage:
 
-curl -L -vvv -X PUT -d bandsonbands localhost:3000/wehave
+curl -L -vvv -X PUT -d bandsonbands iandzindo:3000/wehave
 
-curl localhost:3000/wehave
+curl -L -vvv -X GET -d bandsonbands iandzindo:3000/wehave
 
-curl -X DELETE localhost:3000/wehave
+curl -L -vvv -X DELETE -d bandsonbands iandzindo:3000/wehave
+
+curl iandzindo:3000/wehave
+
+curl -X DELETE iandzindo:3000/wehave
 
 
 To expect 50000 files by folder.
