@@ -19,8 +19,8 @@ PORT=3002 ./volume /tmp/volume2/
 The on disk cache is super simple. Nginx like with md5 for filenames
 and the real name in the xattr.
 
-# Usage:
 
+# Usage:
 curl -L -vvv -X PUT -d bandsonbands iandzindo:3000/wehave
 
 curl -L -vvv -X GET -d bandsonbands iandzindo:3000/wehave
