@@ -8,8 +8,7 @@ import requests
 
 class Testminikeyval(unittest.TestCase):
     def get_key(self):
-        key = b"http://iandzindo:3000/swag-" + binascii.hexlify(os.urandom(10))      #random val
-
+        return b"http://iandzindo:3000/swag-" + binascii.hexlify(os.urandom(10))      #random val
 
     def test_getputdelete(self):
         key = self.get_key()
@@ -62,8 +61,8 @@ class Testminikeyval(unittest.TestCase):
         self.assertNotEqual(r.status_code, 201)
 
 
-    def test_100keys(self):
-        keys = [self.get_key() for i in range(100)]
+    def test_10keys(self):
+        keys = [self.get_key() for i in range(10)]
 
         for k in keys:
             r = requests.put(k, data=hashlib.md5(k).hexdigest())
@@ -71,8 +70,12 @@ class Testminikeyval(unittest.TestCase):
 
         for k in keys:
             r = requests.get(k)
+            self.assertEqual(r.status_code, 200)
             self.assertEqual(r.text, hashlib.md5(k).hexdigest())
 
+        for k in keys:
+            r = requests.delete(k)
+            self.assertEqual(r.status_code, 200)
 
 if __name__ == '__main__':
     unittest.main()
