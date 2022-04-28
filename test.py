@@ -14,51 +14,51 @@ class Testmeerkatfs(unittest.TestCase):
         key = self.get_key()
         print("Key: %s" % key)
 
-        r = requests.put(key, data="liverpool", 'Failed on PUT')
-        self.assertEqual(r.status_code, 201)
+        r = requests.put(key, data="liverpool")
+        self.assertEqual(r.status_code, 201, 'Failed on PUT. Status code  %s' % r.status_code)
 
         r = requests.get(key)
-        self.assertEqual(r.status_code, 200, 'Failed on GET')
-        self.assertEqual(r.text, "liverpool", 'Failed on GET')
+        self.assertEqual(r.status_code, 200, 'Failed on GET. Status code  %s' % r.status_code)')
+        self.assertEqual(r.text, "liverpool", 'Failed on GET. Status code  %s' % r.status_code)')
 
         r = requests.delete(key)
-        self.assertEqual(r.status_code, 200, "Failed on DELETE")
+        self.assertEqual(r.status_code, 200, "Failed on DELETE. Status code  %s' % r.status_code)")
 
 
     def test_deleteworks(self):
         key = self.get_key()
 
         r = requests.put(key, data="liverpool")
-        self.assertEqual(r.status_code, 201, 'Failed on PUT')
+        self.assertEqual(r.status_code, 201, 'Failed on PUT. Status code  %s' % r.status_code)')
 
         r = requests.delete(key)
-        self.assertEqual(r.status_code, 200, "Failed on double DELETE")
+        self.assertEqual(r.status_code, 200, "Failed on double DELETE. Status code  %s' % r.status_code)")
 
         r = requests.delete(key)
-        self.assertNotEqual(r.status_code, 200, "Failed on double DELETE")
+        self.assertNotEqual(r.status_code, 200, "Failed on double DELETE. Status code  %s' % r.status_code)")
 
 
     def test_doubledelete(self):
         key = self.get_key()
 
         r = requests.put(key, data="liverpool")
-        self.assertEqual(r.status_code, 201, "Failed on PUT")
+        self.assertEqual(r.status_code, 201, "Failed on PUT. Status code  %s' % r.status_code)")
 
         r = requests.delete(key)
-        self.assertEqual(r.status_code, 200, "Failed on DELETE")
+        self.assertEqual(r.status_code, 200, "Failed on DELETE. Status code  %s' % r.status_code)")
 
         r = requests.get(key)
-        self.assertNotEqual(r.status_code, 200, "Failed on GET")
+        self.assertNotEqual(r.status_code, 200, "Failed on GET. Status code  %s' % r.status_code)")
 
 
     def test_doubleput(self):
         key = self.get_key()
 
         r = requests.put(key, data="liverpool")
-        self.assertEqual(r.status_code, 201, 'Failed on PUT')
+        self.assertEqual(r.status_code, 201, 'Failed on PUT. Status code  %s' % r.status_code)')
 
         r = requests.put(key, data="liverpool")
-        self.assertNotEqual(r.status_code, 201, 'Failed on PUT')
+        self.assertNotEqual(r.status_code, 201, 'Failed on PUT. Status code  %s' % r.status_code)')
 
 
     def test_10keys(self):
@@ -70,12 +70,12 @@ class Testmeerkatfs(unittest.TestCase):
 
         for k in keys:
             r = requests.get(k)
-            self.assertEqual(r.status_code, 200, "Failed on GET")
-            self.assertEqual(r.text, hashlib.md5(k).hexdigest(), "Failed on GET")
+            self.assertEqual(r.status_code, 200, "Failed on GET. Status code  %s' % r.status_code)")
+            self.assertEqual(r.text, hashlib.md5(k).hexdigest(), "Failed on GET. Status code  %s' % r.status_code)")
 
         for k in keys:
             r = requests.delete(k)
-            self.assertEqual(r.status_code, 200, "Faield on DELETE")
+            self.assertEqual(r.status_code, 200, "Faield on DELETE. Status code  %s' % r.status_code)")
 
 if __name__ == '__main__':
     unittest.main()
