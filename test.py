@@ -6,7 +6,7 @@ import unittest
 import requests
 
 
-class Testminikeyval(unittest.TestCase):
+class Testmeerkatfs(unittest.TestCase):
     def get_key(self):
         return b"http://iandzindo:3000/swag-" + binascii.hexlify(os.urandom(10))      #random val
 
@@ -14,51 +14,51 @@ class Testminikeyval(unittest.TestCase):
         key = self.get_key()
         print("Key: %s" % key)
 
-        r = requests.put(key, data="liverpool")
+        r = requests.put(key, data="liverpool", 'Failed on PUT')
         self.assertEqual(r.status_code, 201)
 
         r = requests.get(key)
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.text, "liverpool")
+        self.assertEqual(r.status_code, 200, 'Failed on GET')
+        self.assertEqual(r.text, "liverpool", 'Failed on GET')
 
         r = requests.delete(key)
-        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.status_code, 200, "Failed on DELETE")
 
 
     def test_deleteworks(self):
         key = self.get_key()
 
         r = requests.put(key, data="liverpool")
-        self.assertEqual(r.status_code, 201)
+        self.assertEqual(r.status_code, 201, 'Failed on PUT')
 
         r = requests.delete(key)
-        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.status_code, 200, "Failed on double DELETE")
 
         r = requests.delete(key)
-        self.assertNotEqual(r.status_code, 200)
+        self.assertNotEqual(r.status_code, 200, "Failed on double DELETE")
 
 
     def test_doubledelete(self):
         key = self.get_key()
 
         r = requests.put(key, data="liverpool")
-        self.assertEqual(r.status_code, 201)
+        self.assertEqual(r.status_code, 201, "Failed on PUT")
 
         r = requests.delete(key)
-        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.status_code, 200, "Failed on DELETE")
 
         r = requests.get(key)
-        self.assertNotEqual(r.status_code, 200)
+        self.assertNotEqual(r.status_code, 200, "Failed on GET")
 
 
     def test_doubleput(self):
         key = self.get_key()
 
         r = requests.put(key, data="liverpool")
-        self.assertEqual(r.status_code, 201)
+        self.assertEqual(r.status_code, 201, 'Failed on PUT')
 
         r = requests.put(key, data="liverpool")
-        self.assertNotEqual(r.status_code, 201)
+        self.assertNotEqual(r.status_code, 201, 'Failed on PUT')
 
 
     def test_10keys(self):
@@ -70,12 +70,12 @@ class Testminikeyval(unittest.TestCase):
 
         for k in keys:
             r = requests.get(k)
-            self.assertEqual(r.status_code, 200)
-            self.assertEqual(r.text, hashlib.md5(k).hexdigest())
+            self.assertEqual(r.status_code, 200, "Failed on GET")
+            self.assertEqual(r.text, hashlib.md5(k).hexdigest(), "Failed on GET")
 
         for k in keys:
             r = requests.delete(k)
-            self.assertEqual(r.status_code, 200)
+            self.assertEqual(r.status_code, 200, "Faield on DELETE")
 
 if __name__ == '__main__':
     unittest.main()
