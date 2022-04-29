@@ -1,3 +1,4 @@
 1. Fix DELETE and PUT errors
 2. Integrate Travis CI
 3. Keep developing and adding new features.
+4. TODO: don't use leveldb cause it's single process

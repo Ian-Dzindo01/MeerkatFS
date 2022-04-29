@@ -8,10 +8,6 @@ import hashlib
 import tempfile
 import requests
 
-
-# Path variables:
-# QUERY_STRING
-
 # --- Global ---
 print("hello", os.environ['TYPE'], os.getpid())    # hello file name process id
 
@@ -19,25 +15,40 @@ def resp(start_response, code, headers=[('Content-type', 'text/plain')], body=b'
   start_response(code, headers)
   return [body]
 
+class SimpleKV(object):
+  def __init__(self, fn):
+    import plyvel
+    self.db = plyvel.DB(fn, create_if_missing=True)
+
+  def get(self, k):
+    return self.db.get(k)
+
+  def put(self, k, v):
+    self.db.put(k, v)
+
+  def delete(self, k):
+    self.db.delete(k)
+
+
 # --- Master Server --
 if os.environ['TYPE'] == "master":
   # check on volume servers
   volumes = os.environ['VOLUMES'].split(",")
 
-  # for v in volumes:
-  #   print(v)
 
   import plyvel
-  db = plyvel.DB(os.environ['DB'], create_if_missing=True)     # create plyvel database
+  db = SimpleKV(os.environ['DB'])    # create plyvel database
 
 def master(env, sr):
   host = env['SERVER_NAME'] + ":" + env['SERVER_PORT']        # host adress
   key = env['PATH_INFO']
 
+
   if env['REQUEST_METHOD'] == 'POST':
     # POST called by volume servers to write to DB
     flen = int(env.get('CONTENT_LENGTH', '0'))
     print("posting", key, flen)
+
 
     if flen > 0:
       db.put(key.encode('utf-8'), env['wsgi.input'].read())     # put the key value in the db
@@ -81,6 +92,8 @@ class FileCache(object):
 
     print("FileCache in %s" % basedir)
 
+
+
   def k2p(self, key, mkdir_ok=False):
     key = hashlib.md5(key.encode('utf-8')).hexdigest()
 
@@ -91,8 +104,12 @@ class FileCache(object):
 
     return os.path.join(path, key)
 
+
+
   def exists(self, key):
     return os.path.isfile(self.k2p(key))
+
+
 
   def delete(self, key):
     try:
